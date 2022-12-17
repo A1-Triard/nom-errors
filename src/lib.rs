@@ -152,4 +152,11 @@ pub mod bytes {
     ) -> impl FnMut(I) -> NomRes<I, I, (), !> {
         uni_err_no_fail(nom::bytes::complete::take(count))
     }
+
+    pub fn take_all<I: InputLength + InputTake>() -> impl FnMut(I) -> NomRes<I, I, !, !> {
+        move |input: I| {
+            let input_len = input.input_len();
+            Ok(input.take_split(input_len))
+        }
+    }
 }
