@@ -121,6 +121,33 @@ pub fn alt_2<I: Clone, O, E, F, X1>(
     })
 }
 
+pub fn alt_3<I: Clone, O, E, F, X1, X2>(
+    a: impl FnMut(I) -> NomRes<I, O, X1, F>,
+    b: impl FnMut(I) -> NomRes<I, O, X2, F>,
+    c: impl FnMut(I) -> NomRes<I, O, E, F>,
+) -> impl FnMut(I) -> NomRes<I, O, E, F> {
+    alt_2(alt_2(a, b), c)
+}
+
+pub fn alt_4<I: Clone, O, E, F, X1, X2, X3>(
+    a: impl FnMut(I) -> NomRes<I, O, X1, F>,
+    b: impl FnMut(I) -> NomRes<I, O, X2, F>,
+    c: impl FnMut(I) -> NomRes<I, O, X3, F>,
+    d: impl FnMut(I) -> NomRes<I, O, E, F>,
+) -> impl FnMut(I) -> NomRes<I, O, E, F> {
+    alt_2(alt_3(a, b, c), d)
+}
+
+pub fn alt_5<I: Clone, O, E, F, X1, X2, X3, X4>(
+    a: impl FnMut(I) -> NomRes<I, O, X1, F>,
+    b: impl FnMut(I) -> NomRes<I, O, X2, F>,
+    c: impl FnMut(I) -> NomRes<I, O, X3, F>,
+    d: impl FnMut(I) -> NomRes<I, O, X4, F>,
+    e: impl FnMut(I) -> NomRes<I, O, E, F>,
+) -> impl FnMut(I) -> NomRes<I, O, E, F> {
+    alt_2(alt_4(a, b, c, d), e)
+}
+
 pub fn many0<I: Clone + InputLength, O, E, F>(
     mut parser: impl FnMut(I) -> NomRes<I, O, E, F>
 ) -> impl FnMut(I) -> NomRes<I, Vec<O>, !, F> {
