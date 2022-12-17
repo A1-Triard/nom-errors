@@ -90,6 +90,16 @@ pub fn any_err<I: Clone, O, F, X>(
     move |input: I| parser_from_result(result_from_parser(parser(input.clone())).map_err(|e| e.any_err()))
 }
 
+pub fn uni_err_no_fail<I, O>(
+    mut parser: impl FnMut(I) -> IResult<I, O, ()>
+) -> impl FnMut(I) -> NomRes<I, O, (), !> {
+    move |input: I| parser_from_result(match parser(input) {
+        Ok((i, o)) => Ok((i, o)),
+        Err(nom::Err::Error(())) => Err(NomErr::Error(())),
+        _ => panic!(),
+    })
+}
+
 pub fn alt_2<I: Clone, O, E, F, X1>(
     mut a: impl FnMut(I) -> NomRes<I, O, X1, F>,
     mut b: impl FnMut(I) -> NomRes<I, O, E, F>,
@@ -118,4 +128,15 @@ pub fn many0<I: Clone + InputLength, O, E, F>(
             }
         }.map(|()| (input, r))
     })
+}
+
+pub mod bytes {
+    use super::*;
+    use nom::{Compare, InputLength, InputTake};
+
+    pub fn tag<T: Clone + InputLength, I: InputTake + Compare<T>>(
+        tag: T
+    ) -> impl FnMut(I) -> NomRes<I, I, (), !> {
+        uni_err_no_fail(nom::bytes::complete::tag(tag))
+    }
 }
