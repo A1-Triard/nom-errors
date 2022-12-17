@@ -1,6 +1,6 @@
 #![feature(never_type)]
 
-use nom::{self, IResult};
+use nom::{self, IResult, InputLength};
 use nom::error::ParseError;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -87,19 +87,35 @@ pub fn map_err<I: Clone, O, E, F, X>(
 pub fn any_err<I: Clone, O, F, X>(
     mut parser: impl FnMut(I) -> NomRes<I, O, !, F>,
 ) -> impl FnMut(I) -> NomRes<I, O, X, F> {
-    move |input: I| {
-        parser_from_result(result_from_parser(parser(input.clone())).map_err(|e| e.any_err()))
-    }
+    move |input: I| parser_from_result(result_from_parser(parser(input.clone())).map_err(|e| e.any_err()))
 }
 
 pub fn alt_2<I: Clone, O, E, F, X1>(
     mut a: impl FnMut(I) -> NomRes<I, O, X1, F>,
     mut b: impl FnMut(I) -> NomRes<I, O, E, F>,
 ) -> impl FnMut(I) -> NomRes<I, O, E, F> {
-    move |input: I| {
-        match a(input.clone()) {
-            Ok(r) => Ok(r),
-            Err(_) => b(input)
-        }
-    }
+    move |input: I| parser_from_result(match result_from_parser(a(input.clone())) {
+        Ok(r) => Ok(r),
+        Err(NomErr::Failure(f)) => Err(NomErr::Failure(f)),
+        Err(NomErr::Error(_)) => result_from_parser(b(input)),
+    })
+}
+
+pub fn many0<I: Clone + InputLength, O, E, F>(
+    mut parser: impl FnMut(I) -> NomRes<I, O, E, F>
+) -> impl FnMut(I) -> NomRes<I, Vec<O>, !, F> {
+    move |mut input: I| parser_from_result({
+        let mut r = Vec::new();
+        loop {
+            match result_from_parser(parser(input.clone())) {
+                Ok((i, o)) => {
+                    assert!(i.input_len() != input.input_len(), "invalid many0 parser");
+                    input = i;
+                    r.push(o);
+                },
+                Err(NomErr::Failure(f)) => break Err(NomErr::Failure(f)),
+                Err(NomErr::Error(_)) => break Ok(()),
+            }
+        }.map(|()| (input, r))
+    })
 }
