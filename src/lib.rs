@@ -117,9 +117,10 @@ pub fn many0<I: Clone + InputLength, O, E, F>(
     move |mut input: I| parser_from_result({
         let mut r = Vec::new();
         loop {
+            if input.input_len() == 0 { break Ok(()); }
             match result_from_parser(parser(input.clone())) {
                 Ok((i, o)) => {
-                    assert!(i.input_len() != input.input_len(), "invalid many0 parser");
+                    assert_ne!(i.input_len(), input.input_len(), "invalid many0 parser");
                     input = i;
                     r.push(o);
                 },
@@ -156,8 +157,7 @@ pub mod bytes {
     pub fn take_all<I: InputLength + InputTake>() -> impl FnMut(I) -> NomRes<I, I, !, !> {
         move |input: I| {
             let input_len = input.input_len();
-            let (r, i) = input.take_split(input_len);
-            Ok((i, r))
+            Ok(input.take_split(input_len))
         }
     }
 }
