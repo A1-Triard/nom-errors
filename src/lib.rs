@@ -156,7 +156,8 @@ pub mod bytes {
     pub fn take_all<I: InputLength + InputTake>() -> impl FnMut(I) -> NomRes<I, I, !, !> {
         move |input: I| {
             let input_len = input.input_len();
-            Ok(input.take_split(input_len))
+            let (r, i) = input.take_split(input_len);
+            Ok((i, r))
         }
     }
 }
