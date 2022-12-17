@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
 name = "nom-errors"
-version = "0.0.6"
+version = "0.0.7"
 #rust-version = "nightly"
 authors = ["warlock <internalmike@gmail.com>"]
 description = "Strong-typed errors support for nom parser combinator library."
