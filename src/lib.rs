@@ -100,6 +100,16 @@ pub fn uni_err_no_fail<I, O>(
     })
 }
 
+pub fn seq_2<I, O1, O2, E, F>(
+    mut a: impl FnMut(I) -> NomRes<I, O1, E, F>,
+    mut b: impl FnMut(I) -> NomRes<I, O2, E, F>,
+) -> impl FnMut(I) -> NomRes<I, (O1, O2), E, F> {
+    move |input: I| parser_from_result(match result_from_parser(a(input)) {
+        Err(e) => Err(e),
+        Ok((input, a)) => result_from_parser(b(input)).map(|(i, b)| (i, (a, b)))
+    })
+}
+
 pub fn alt_2<I: Clone, O, E, F, X1>(
     mut a: impl FnMut(I) -> NomRes<I, O, X1, F>,
     mut b: impl FnMut(I) -> NomRes<I, O, E, F>,
@@ -149,7 +159,12 @@ pub fn all_consuming<I: InputLength, O, E, F>(
 
 pub mod bytes {
     use super::*;
-    use nom::{Compare, InputIter, InputLength, InputTake};
+    use nom::{Compare, InputIter, InputLength, InputTake, Slice};
+    use std::ops::RangeFrom;
+
+    pub fn le_u16<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, u16, (), !> {
+        uni_err_no_fail(nom::number::complete::le_u16)
+    }
 
     pub fn tag<T: Clone + InputLength, I: InputTake + Compare<T>>(
         tag: T
