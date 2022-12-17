@@ -138,6 +138,15 @@ pub fn map<I, O, E, F, X>(
     move |input: I| parser_from_result(result_from_parser(parser(input)).map(|(i, r)| (i, f(r))))
 }
 
+pub fn all_consuming<I: InputLength, O, E, F>(
+    mut parser: impl FnMut(I) -> NomRes<I, O, E, F>,
+    mut f: impl FnMut(I) -> NomErr<E, F>,
+) -> impl FnMut(I) -> NomRes<I, O, E, F> {
+    move |input: I| parser_from_result(result_from_parser(parser(input)).and_then(|(i, r)|
+        if i.input_len() == 0 { Ok((i, r)) } else { Err(f(i)) }
+    ))
+}
+
 pub mod bytes {
     use super::*;
     use nom::{Compare, InputIter, InputLength, InputTake};
