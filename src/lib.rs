@@ -130,13 +130,26 @@ pub fn many0<I: Clone + InputLength, O, E, F>(
     })
 }
 
+pub fn map<I, O, E, F, X>(
+    mut parser: impl FnMut(I) -> NomRes<I, O, E, F>,
+    mut f: impl FnMut(O) -> X
+) -> impl FnMut(I) -> NomRes<I, X, E, F> {
+    move |input: I| parser_from_result(result_from_parser(parser(input)).map(|(i, r)| (i, f(r))))
+}
+
 pub mod bytes {
     use super::*;
-    use nom::{Compare, InputLength, InputTake};
+    use nom::{Compare, InputIter, InputLength, InputTake};
 
     pub fn tag<T: Clone + InputLength, I: InputTake + Compare<T>>(
         tag: T
     ) -> impl FnMut(I) -> NomRes<I, I, (), !> {
         uni_err_no_fail(nom::bytes::complete::tag(tag))
+    }
+
+    pub fn take<I: InputIter + InputTake>(
+        count: usize
+    ) -> impl FnMut(I) -> NomRes<I, I, (), !> {
+        uni_err_no_fail(nom::bytes::complete::take(count))
     }
 }
