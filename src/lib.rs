@@ -238,8 +238,28 @@ pub mod bytes {
     use nom::{Compare, InputIter, InputLength, InputTake, Slice};
     use std::ops::RangeFrom;
 
+    pub fn le_u8<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, u8, (), !> {
+        uni_err_no_fail(nom::number::complete::le_u8)
+    }
+
     pub fn le_u16<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, u16, (), !> {
         uni_err_no_fail(nom::number::complete::le_u16)
+    }
+
+    pub fn le_u32<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, u32, (), !> {
+        uni_err_no_fail(nom::number::complete::le_u32)
+    }
+
+    pub fn le_i8<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, i8, (), !> {
+        uni_err_no_fail(nom::number::complete::le_i8)
+    }
+
+    pub fn le_i16<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, i16, (), !> {
+        uni_err_no_fail(nom::number::complete::le_i16)
+    }
+
+    pub fn le_i32<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, i32, (), !> {
+        uni_err_no_fail(nom::number::complete::le_i32)
     }
 
     pub fn tag<T: Clone + InputLength, I: InputTake + Compare<T>>(
