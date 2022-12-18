@@ -2,6 +2,7 @@
 
 use nom::{self, IResult, InputLength};
 use nom::error::ParseError;
+use paste::paste;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum NomErr<E, F> {
@@ -110,43 +111,81 @@ pub fn seq_2<I, O1, O2, E, F>(
     })
 }
 
+macro_rules! seq_n {
+    (
+        $n:literal; $m:literal: $($i:literal),+
+    ) => {
+        paste! {
+            pub fn [< seq_ $n >] <I, $( [< O $i >] , )+ [< O $n >] , E, F>(
+                $(
+                    [< parser_ $i >] : impl FnMut(I) -> NomRes<I, [< O $i >] , E, F>,
+                )+
+                [< parser_ $n >] : impl FnMut(I) -> NomRes<I, [< O $n >] , E, F>,
+            ) -> impl FnMut(I) -> NomRes<I, ($( [< O $i >], )+ [< O $n >] ), E, F> {
+                map(
+                    seq_2( [< seq_ $m >] ($( [< parser_ $i >] ),+), [< parser_ $n >] ),
+                    |(($( [< r $i >] ),+), [< r $n >] )| ($( [< r $i >] ,)+ [< r $n >] )
+                )
+            }
+        }
+    };
+}
+
+seq_n!(3; 2: 1, 2);
+seq_n!(4; 3: 1, 2, 3);
+seq_n!(5; 4: 1, 2, 3, 4);
+seq_n!(6; 5: 1, 2, 3, 4, 5);
+seq_n!(7; 6: 1, 2, 3, 4, 5, 6);
+seq_n!(8; 7: 1, 2, 3, 4, 5, 6, 7);
+seq_n!(9; 8: 1, 2, 3, 4, 5, 6, 7, 8);
+seq_n!(10; 9: 1, 2, 3, 4, 5, 6, 7, 8, 9);
+seq_n!(11; 10: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+seq_n!(12; 11: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+seq_n!(13; 12: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+seq_n!(14; 13: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
+seq_n!(15; 14: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
+
 pub fn alt_2<I: Clone, O, E, F, X1>(
-    mut a: impl FnMut(I) -> NomRes<I, O, X1, F>,
-    mut b: impl FnMut(I) -> NomRes<I, O, E, F>,
+    mut parser_1: impl FnMut(I) -> NomRes<I, O, X1, F>,
+    mut parser: impl FnMut(I) -> NomRes<I, O, E, F>,
 ) -> impl FnMut(I) -> NomRes<I, O, E, F> {
-    move |input: I| parser_from_result(match result_from_parser(a(input.clone())) {
+    move |input: I| parser_from_result(match result_from_parser(parser_1(input.clone())) {
         Ok(r) => Ok(r),
         Err(NomErr::Failure(f)) => Err(NomErr::Failure(f)),
-        Err(NomErr::Error(_)) => result_from_parser(b(input)),
+        Err(NomErr::Error(_)) => result_from_parser(parser(input)),
     })
 }
 
-pub fn alt_3<I: Clone, O, E, F, X1, X2>(
-    a: impl FnMut(I) -> NomRes<I, O, X1, F>,
-    b: impl FnMut(I) -> NomRes<I, O, X2, F>,
-    c: impl FnMut(I) -> NomRes<I, O, E, F>,
-) -> impl FnMut(I) -> NomRes<I, O, E, F> {
-    alt_2(alt_2(a, b), c)
+macro_rules! alt_n {
+    (
+        $n:literal; $m:literal: $($i:literal),+
+    ) => {
+        paste! {
+            pub fn [< alt_ $n >] <I: Clone, O, E, F, $( [< X $i >]),+>(
+                $(
+                    [< parser_ $i >] : impl FnMut(I) -> NomRes<I, O, [< X $i >], F>,
+                )+
+                parser: impl FnMut(I) -> NomRes<I, O, E, F>,
+            ) -> impl FnMut(I) -> NomRes<I, O, E, F> {
+                alt_2( [< alt_ $m >] ($( [< parser_ $i >] ),+), parser)
+            }
+        }
+    };
 }
 
-pub fn alt_4<I: Clone, O, E, F, X1, X2, X3>(
-    a: impl FnMut(I) -> NomRes<I, O, X1, F>,
-    b: impl FnMut(I) -> NomRes<I, O, X2, F>,
-    c: impl FnMut(I) -> NomRes<I, O, X3, F>,
-    d: impl FnMut(I) -> NomRes<I, O, E, F>,
-) -> impl FnMut(I) -> NomRes<I, O, E, F> {
-    alt_2(alt_3(a, b, c), d)
-}
-
-pub fn alt_5<I: Clone, O, E, F, X1, X2, X3, X4>(
-    a: impl FnMut(I) -> NomRes<I, O, X1, F>,
-    b: impl FnMut(I) -> NomRes<I, O, X2, F>,
-    c: impl FnMut(I) -> NomRes<I, O, X3, F>,
-    d: impl FnMut(I) -> NomRes<I, O, X4, F>,
-    e: impl FnMut(I) -> NomRes<I, O, E, F>,
-) -> impl FnMut(I) -> NomRes<I, O, E, F> {
-    alt_2(alt_4(a, b, c, d), e)
-}
+alt_n!(3; 2: 1, 2);
+alt_n!(4; 3: 1, 2, 3);
+alt_n!(5; 4: 1, 2, 3, 4);
+alt_n!(6; 5: 1, 2, 3, 4, 5);
+alt_n!(7; 6: 1, 2, 3, 4, 5, 6);
+alt_n!(8; 7: 1, 2, 3, 4, 5, 6, 7);
+alt_n!(9; 8: 1, 2, 3, 4, 5, 6, 7, 8);
+alt_n!(10; 9: 1, 2, 3, 4, 5, 6, 7, 8, 9);
+alt_n!(11; 10: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+alt_n!(12; 11: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11);
+alt_n!(13; 12: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+alt_n!(14; 13: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
+alt_n!(15; 14: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
 
 pub fn many0<I: Clone + InputLength, O, E, F>(
     mut parser: impl FnMut(I) -> NomRes<I, O, E, F>
