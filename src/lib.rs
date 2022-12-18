@@ -223,6 +223,16 @@ pub fn all_consuming<I: InputLength, O, E, F>(
     ))
 }
 
+pub fn flat_map<I, O1, O2, E, F, P: FnMut(I) -> NomRes<I, O2, E, F>>(
+    mut parser: impl FnMut(I) -> NomRes<I, O1, E, F>,
+    mut f: impl FnMut(O1) -> P,
+) -> impl FnMut(I) -> NomRes<I, O2, E, F> {
+    move |input: I| parser_from_result(match result_from_parser(parser(input)) {
+        Err(e) => Err(e),
+        Ok((i, r1)) => result_from_parser(f(r1)(i))
+    })
+}
+
 pub mod bytes {
     use super::*;
     use nom::{Compare, InputIter, InputLength, InputTake, Slice};
