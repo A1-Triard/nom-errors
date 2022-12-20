@@ -214,6 +214,15 @@ pub fn map<I, O, E, F, X>(
     move |input: I| parser_from_result(result_from_parser(parser(input)).map(|(i, r)| (i, f(r))))
 }
 
+pub fn map_res<I, O, E, F, X>(
+    mut parser: impl FnMut(I) -> NomRes<I, O, E, F>,
+    mut f: impl FnMut(O) -> Result<X, E>
+) -> impl FnMut(I) -> NomRes<I, X, E, F> {
+    move |input: I| parser_from_result(result_from_parser(parser(input)).and_then(|(i, r)|
+        f(r).map_err(NomErr::Error).map(|r| (i, r))
+    ))
+}
+
 pub fn all_consuming<I: InputLength, O, E, F>(
     mut parser: impl FnMut(I) -> NomRes<I, O, E, F>,
     mut f: impl FnMut(I) -> NomErr<E, F>,
