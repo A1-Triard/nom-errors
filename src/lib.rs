@@ -242,6 +242,21 @@ pub fn flat_map<I, O1, O2, E, F, P: FnMut(I) -> NomRes<I, O2, E, F>>(
     })
 }
 
+pub fn count<I: Clone + PartialEq, O, E, F>(
+    mut parser: impl FnMut(I) -> NomRes<I, O, E, F>,
+    count: usize
+) -> impl FnMut(I) -> NomRes<I, Vec<O>, E, F> {
+    move |mut input: I| parser_from_result((|| {
+        let mut r = Vec::new();
+        for _ in 0 .. count {
+            let (i, o) = result_from_parser(parser(input.clone()))?;
+            input = i;
+            r.push(o);
+        }
+        Ok((input, r))
+    })())
+}
+
 pub mod bytes {
     use super::*;
     use nom::{Compare, InputIter, InputLength, InputTake, Slice};
