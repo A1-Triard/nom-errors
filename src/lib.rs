@@ -1,5 +1,8 @@
 #![feature(never_type)]
 
+#![deny(warnings)]
+#![allow(clippy::too_many_arguments)]
+
 use nom::{self, IResult, InputLength};
 use nom::error::ParseError;
 use paste::paste;
@@ -88,7 +91,7 @@ pub fn map_err<I: Clone, O, E, F, X>(
 pub fn any_err<I: Clone, O, F, X>(
     mut parser: impl FnMut(I) -> NomRes<I, O, !, F>,
 ) -> impl FnMut(I) -> NomRes<I, O, X, F> {
-    move |input: I| parser_from_result(result_from_parser(parser(input.clone())).map_err(|e| e.any_err()))
+    move |input: I| parser_from_result(result_from_parser(parser(input)).map_err(|e| e.any_err()))
 }
 
 pub fn uni_err_no_fail<I, O>(
