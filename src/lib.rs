@@ -3,7 +3,7 @@
 #![deny(warnings)]
 #![allow(clippy::too_many_arguments)]
 
-use nom::{self, IResult, InputLength};
+use nom::{self, IResult, Input};
 use nom::error::ParseError;
 use paste::paste;
 
@@ -190,7 +190,7 @@ alt_n!(13; 12: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 alt_n!(14; 13: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
 alt_n!(15; 14: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
 
-pub fn many0<I: Clone + InputLength, O, E, F>(
+pub fn many0<I: Clone + Input, O, E, F>(
     mut parser: impl FnMut(I) -> NomRes<I, O, E, F>
 ) -> impl FnMut(I) -> NomRes<I, Vec<O>, !, F> {
     move |mut input: I| parser_from_result({
@@ -226,7 +226,7 @@ pub fn map_res<I, O, E, F, X>(
     ))
 }
 
-pub fn all_consuming<I: InputLength, O, E, F>(
+pub fn all_consuming<I: Input, O, E, F>(
     mut parser: impl FnMut(I) -> NomRes<I, O, E, F>,
     mut f: impl FnMut(I) -> NomErr<E, F>,
 ) -> impl FnMut(I) -> NomRes<I, O, E, F> {
@@ -262,46 +262,45 @@ pub fn count<I: Clone + PartialEq, O, E, F>(
 
 pub mod bytes {
     use super::*;
-    use nom::{Compare, InputIter, InputLength, InputTake, Slice};
-    use std::ops::RangeFrom;
+    use nom::Compare;
 
-    pub fn le_u8<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, u8, (), !> {
+    pub fn le_u8<I: Input<Item=u8>>() -> impl FnMut(I) -> NomRes<I, u8, (), !> {
         uni_err_no_fail(nom::number::complete::le_u8)
     }
 
-    pub fn le_u16<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, u16, (), !> {
+    pub fn le_u16<I: Input<Item=u8>>() -> impl FnMut(I) -> NomRes<I, u16, (), !> {
         uni_err_no_fail(nom::number::complete::le_u16)
     }
 
-    pub fn le_u32<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, u32, (), !> {
+    pub fn le_u32<I: Input<Item=u8>>() -> impl FnMut(I) -> NomRes<I, u32, (), !> {
         uni_err_no_fail(nom::number::complete::le_u32)
     }
 
-    pub fn le_i8<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, i8, (), !> {
+    pub fn le_i8<I: Input<Item=u8>>() -> impl FnMut(I) -> NomRes<I, i8, (), !> {
         uni_err_no_fail(nom::number::complete::le_i8)
     }
 
-    pub fn le_i16<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, i16, (), !> {
+    pub fn le_i16<I: Input<Item=u8>>() -> impl FnMut(I) -> NomRes<I, i16, (), !> {
         uni_err_no_fail(nom::number::complete::le_i16)
     }
 
-    pub fn le_i32<I: Slice<RangeFrom<usize>> + InputIter<Item=u8> + InputLength>() -> impl FnMut(I) -> NomRes<I, i32, (), !> {
+    pub fn le_i32<I: Input<Item=u8>>() -> impl FnMut(I) -> NomRes<I, i32, (), !> {
         uni_err_no_fail(nom::number::complete::le_i32)
     }
 
-    pub fn tag<T: Clone + InputLength, I: InputTake + Compare<T>>(
+    pub fn tag<T: Clone + Input, I: Input + Compare<T>>(
         tag: T
     ) -> impl FnMut(I) -> NomRes<I, I, (), !> {
         uni_err_no_fail(nom::bytes::complete::tag(tag))
     }
 
-    pub fn take<I: InputIter + InputTake>(
+    pub fn take<I: Input>(
         count: usize
     ) -> impl FnMut(I) -> NomRes<I, I, (), !> {
         uni_err_no_fail(nom::bytes::complete::take(count))
     }
 
-    pub fn take_all<I: InputLength + InputTake>() -> impl FnMut(I) -> NomRes<I, I, !, !> {
+    pub fn take_all<I: Input>() -> impl FnMut(I) -> NomRes<I, I, !, !> {
         move |input: I| {
             let input_len = input.input_len();
             Ok(input.take_split(input_len))
